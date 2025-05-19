@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { catchError } from 'rxjs/operators';
+import { throwError } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class TaskService {
@@ -7,19 +9,40 @@ export class TaskService {
 
   constructor(private http: HttpClient) {}
 
+  // Method to get tasks with Authorization header
   getTasks() {
-    return this.http.get(this.URL);
+    const headers = this.createAuthorizationHeader();
+    return this.http.get(this.URL, { headers }).pipe(
+      catchError((error) => {
+        if (error.error instanceof SyntaxError) {
+          return throwError(() => new Error('Invalid JSON response from server'));
+        }
+        return throwError(() => error);
+      })
+    );
   }
 
+  // Method to create a task with Authorization header
   createTask(task: any) {
-    return this.http.post(this.URL, task);
+    const headers = this.createAuthorizationHeader();
+    return this.http.post(this.URL, task, { headers });
   }
 
+  // Method to update a task with Authorization header
   updateTask(id: string, task: any) {
-    return this.http.put(`${this.URL}/${id}`, task);
+    const headers = this.createAuthorizationHeader();
+    return this.http.put(`${this.URL}/${id}`, task, { headers });
   }
 
+  // Method to delete a task with Authorization header
   deleteTask(id: string) {
-    return this.http.delete(`${this.URL}/${id}`);
+    const headers = this.createAuthorizationHeader();
+    return this.http.delete(`${this.URL}/${id}`, { headers });
+  }
+
+  // Helper method to create Authorization header
+  private createAuthorizationHeader() {
+    const token = localStorage.getItem('token');
+    return token ? new HttpHeaders({ 'Authorization': `Bearer ${token}` }) : new HttpHeaders();
   }
 }
